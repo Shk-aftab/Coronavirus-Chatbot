@@ -1,0 +1,510 @@
+# This files contains your custom actions which can be used to run
+# custom Python code.
+#
+# See this guide on how to implement these action:
+# https://rasa.com/docs/rasa/core/actions/#custom-actions/
+
+
+# This is a simple example for a custom action which utters "Hello World!"
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+from typing import Any, Text, Dict, List
+import smtplib
+import requests
+import pycountry
+from bs4 import BeautifulSoup
+
+import json
+
+from rasa_sdk import Action, Tracker
+from rasa_sdk.executor import CollectingDispatcher
+
+
+class ActionHelloWorld(Action):
+
+    def name(self) -> Text:
+        return "action_hello_with_details"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        name = tracker.get_slot('name')
+        name1 = "Hey {}, this is COVID-19 chatbot. Your details has been saved. Feel free to ask any query regarding " \
+                "coronavirus (e.g cases in india, cases in india at 2020-04-02 , cases around the world ,cases around " \
+                "the world at 2020-04-17 , cases in Maharashtra)".format(name)
+        dispatcher.utter_message(template="utter_getDetails", text=name1)
+
+        return []
+
+
+class ActionUpdatesWorld(Action):
+
+    def name(self) -> Text:
+        return "action_latest_updates_world"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        url = "https://covid-19-data.p.rapidapi.com/totals"
+
+        querystring = {"format": "json"}
+
+        headers = {
+            'x-rapidapi-host': "covid-19-data.p.rapidapi.com",
+            'x-rapidapi-key': "944c9b5040msh8be46f3d0397343p156417jsnb6415553955c"
+        }
+
+        r = requests.request("GET", url, headers=headers, params=querystring)
+
+        blah = r.json()
+
+        data = blah[0]
+
+        # total_cases = data['total_cases']
+        # # new_cases =data['new_cases']
+        # total_deaths = data['total_deaths']
+        # # new_deaths=data['new_deaths']
+        # total_recovered = data['total_recovered']
+        # # active_cases=data['active_cases']
+        # serious_critical = data['serious_critical']
+        # # total_cases_per_1m_population=data['total_cases_per_1m_population']
+        # # deaths_per_1m_population=data['deaths_per_1m_population']
+        # # statistic_taken_at=data['statistic_taken_at']
+
+        # response = """Latest Updates around the world are
+        #           Total Cases: {0}
+        #           Total Deaths: {1}
+        #           Total Recovered: {2}
+        #           Critical: {3}""".format(total_cases, total_deaths, total_recovered, serious_critical)
+
+        conf = data['confirmed']
+        reco = data['recovered']
+        cri = data['critical']
+        death = data['deaths']
+
+        response = (f"Latest Updates around the world\n"
+                    f"Confirmed: {conf}\n"
+                    f"Recovered: {reco}\n"
+                    f"Critical: {cri}\n"
+                    f"Deaths: {death}")
+
+        dispatcher.utter_message(template="utter_latestUpdatesOfWorld", text=response)
+
+        return []
+
+
+class ActionUpdatesCountryName(Action):
+
+    def name(self) -> Text:
+        return "action_latest_updates_country_name"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        coun = tracker.get_slot('countryname')
+
+        url = "https://covid-19-data.p.rapidapi.com/country"
+
+        querystring = {"format": "json", "name": coun}
+
+        headers = {
+            'x-rapidapi-host': "covid-19-data.p.rapidapi.com",
+            'x-rapidapi-key': "944c9b5040msh8be46f3d0397343p156417jsnb6415553955c"
+        }
+
+        r = requests.request("GET", url, headers=headers, params=querystring)
+        blah = r.json()
+
+        data = blah[0]
+
+        coun = data['country']
+        conf = data['confirmed']
+        reco = data['recovered']
+        cri = data['critical']
+        death = data['deaths']
+
+        response = (f"Latest Updates of Country \n"
+                    f"Country:{coun} \n"
+                    f"Confirmed: {conf}\n"
+                    f"Recovered: {reco}\n"
+                    f"Critical: {cri}\n"
+                    f"Deaths: {death}")
+
+        dispatcher.utter_message(template="utter_latestUpdatesCountryName", text=response)
+
+        return []
+
+
+class ActionUpdatesCountryDate(Action):
+
+    def name(self) -> Text:
+        return "action_updates_country_date"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        coun = tracker.get_slot('countrynamed')
+
+        cd = tracker.get_slot('date')
+        result = pycountry.countries.search_fuzzy(coun)
+        cc = result[0].alpha_2
+
+        url = "https://covid-19-data.p.rapidapi.com/report/country/code"
+
+        querystring = {"format": "json", "date-format": "YYYY-MM-DD", "date": cd, "code": cc}
+
+        headers = {
+            'x-rapidapi-host': "covid-19-data.p.rapidapi.com",
+            'x-rapidapi-key': "944c9b5040msh8be46f3d0397343p156417jsnb6415553955c"
+        }
+
+        r = requests.request("GET", url, headers=headers, params=querystring)
+        blah = r.json()
+
+        provinces = blah[0]
+        date = provinces['date']
+        data = provinces['provinces'][0]
+
+        coun = data['province']
+        conf = data['confirmed']
+        reco = data['recovered']
+        death = data['deaths']
+        active = data['active']
+
+        response = (f"Latest Updates of Country\n"
+                    f"Country:{coun} \n"
+                    f"Date:{date}\n"
+                    f"Confirmed: {conf}\n"
+                    f"Recovered: {reco}\n"
+                    f"Deaths: {death}\n"
+                    f"Active: {active}")
+
+        dispatcher.utter_message(template="utter_updatesCountryDate", text=response)
+
+        return []
+
+
+class ActionUpdatesWorldDate(Action):
+
+    def name(self) -> Text:
+        return "action_updates_world_date"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        wd = tracker.get_slot('date')
+
+        url = "https://covidapi.info/api/v1/global/" + wd
+
+        r = requests.request("GET", url)
+
+        blah = r.json()
+        date = blah['date']
+        data = blah['result']
+
+        conf = data['confirmed']
+        reco = data['recovered']
+        death = data['deaths']
+
+        response = (f"Coronavirus cases in world at {date}\n"
+                    f"Confirmed: {conf}\n"
+                    f"Recovered: {reco}\n"
+                    f"Deaths: {death}")
+
+        dispatcher.utter_message(template="utter_updatesWorldDate", text=response)
+
+        return []
+
+
+class ActionUpdatesIndiaStateWise(Action):
+
+    def name(self) -> Text:
+        return "action_updates_IndiaStateWise"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        sn = tracker.get_slot('statename')
+
+        state_code = {
+
+            "AP": "Andhra Pradesh",
+            "AR": "Arunachal Pradesh",
+            "AS": "Assam",
+            "BR": "Bihar",
+            "CT": "Chhattisgarh",
+            "GA": "Goa",
+            "GJ": "Gujarat",
+            "HR": "Haryana",
+            "HP": "Himachal Pradesh",
+            "JK": "Jammu and Kashmir",
+            "JH": "Jharkhand",
+            "KA": "Karnataka",
+            "KL": "Kerala",
+            "MP": "Madhya Pradesh",
+            "MH": "Maharashtra",
+            "MN": "Manipur",
+            "ML": "Meghalaya",
+            "MZ": "Mizoram",
+            "NL": "Nagaland",
+            "OR": "Odisha",
+            "PB": "Punjab",
+            "RJ": "Rajasthan",
+            "SK": "Sikkim",
+            "TN": "Tamil Nadu",
+            "TG": "Telangana",
+            "TR": "Tripura",
+            "UT": "Uttarakhand",
+            "UP": "Uttar Pradesh",
+            "WB": "West Bengal",
+            "AN": "Andaman and Nicobar Islands",
+            "CH": "Chandigarh",
+            "DN": "Dadra and Nagar Haveli",
+            "DD": "Daman and Diu",
+            "DL": "Delhi",
+            "LD": "Lakshadweep",
+            "PY": "Puducherry"
+
+        }
+
+        for key, value in state_code.items():
+            if sn == value:
+                s = key
+
+        url = "https://covid19india.p.rapidapi.com/getStateData/" + s
+
+        headers = {
+            'x-rapidapi-host': "covid19india.p.rapidapi.com",
+            'x-rapidapi-key': "944c9b5040msh8be46f3d0397343p156417jsnb6415553955c"
+        }
+
+        r = requests.request("GET", url, headers=headers)
+
+        blah = r.json()
+        data = blah['response']
+
+        name = data['name']
+        conf = data['confirmed']
+        reco = data['recovered']
+        death = data['deaths']
+        active = data['active']
+
+        response = (f"Coronavirus Updates in {name}\n"
+                    f"Confirmed: {conf}\n"
+                    f"Recovered: {reco}\n"
+                    f"Deaths: {death}\n"
+                    f"Active: {active}")
+
+        dispatcher.utter_message(template="utter_updateIndiaStateWise", text=response)
+
+        return []
+
+
+class ActionPreventiveMeasures(Action):
+
+    def name(self) -> Text:
+        return "action_preventive_measures"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        url = "https://www.healthline.com/health/coronavirus-prevention#Tips-for-prevention"
+
+        page = requests.get(url)
+
+        soup = BeautifulSoup(page.text, 'html.parser')
+
+        results = soup.find_all('div', {'class': 'css-0'})
+
+        results1 = results[0]
+
+        data = results1.find_all('h3')[0].get_text()
+        data1 = results1.find_all('h3')[1].get_text()
+        data2 = results1.find_all('h3')[2].get_text()
+        data3 = results1.find_all('h3')[3].get_text()
+        data4 = results1.find_all('h3')[4].get_text()
+        data5 = results1.find_all('h3')[5].get_text()
+        data6 = results1.find_all('h3')[6].get_text()
+        data7 = results1.find_all('h3')[7].get_text()
+        data8 = results1.find_all('h3')[8].get_text()
+        data9 = results1.find_all('h3')[9].get_text()
+        data10 = results1.find_all('h3')[10].get_text()
+        data11 = results1.find_all('h3')[11].get_text()
+
+        responses = ("Tips for prevention\n"
+                     "{0}\n"
+                     "{1}\n"
+                     "{2}\n"
+                     "{3}\n"
+                     "{4}\n"
+                     "{5}\n"
+                     "{6}\n"
+                     "{7}\n"
+                     "{8}\n"
+                     "{9}\n"
+                     "{10}\n"
+                     "{11}").format(data, data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11)
+
+        dispatcher.utter_message(template="utter_preventiveMeasures", text=responses)
+
+        return []
+
+
+class ActionSendEmail(Action):
+
+    def name(self) -> Text:
+        return "action_send_email"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        toname = tracker.get_slot('name')
+        toemail = tracker.get_slot('email')
+
+        url = "https://www.healthline.com/health/coronavirus-prevention#Tips-for-prevention"
+
+        page = requests.get(url)
+
+        soup = BeautifulSoup(page.text, 'html.parser')
+
+        results = soup.find_all('div', {'class': 'css-0'})
+
+        results1 = results[0]
+
+        data = results1.find_all('h3')[0].get_text()
+        data1 = results1.find_all('h3')[1].get_text()
+        data2 = results1.find_all('h3')[2].get_text()
+        data3 = results1.find_all('h3')[3].get_text()
+        data4 = results1.find_all('h3')[4].get_text()
+        data5 = results1.find_all('h3')[5].get_text()
+        data6 = results1.find_all('h3')[6].get_text()
+        data7 = results1.find_all('h3')[7].get_text()
+        data8 = results1.find_all('h3')[8].get_text()
+        data9 = results1.find_all('h3')[9].get_text()
+        data10 = results1.find_all('h3')[10].get_text()
+        data11 = results1.find_all('h3')[11].get_text()
+
+        results21 = results1.find_all('p')[0].get_text()
+
+        results22 = results1.find_all('p')[1].get_text()
+        results23 = results1.find_all('p')[2].get_text()
+
+        results24 = results1.find_all('p')[3].get_text()
+        results25 = results1.find_all('p')[4].get_text()
+
+        results26 = results1.find_all('p')[5].get_text()
+
+        results27 = results1.find_all('p')[6].get_text()
+
+        results28 = results1.find_all('p')[7].get_text()
+        results29 = results1.find_all('p')[8].get_text()
+
+        results210 = results1.find_all('p')[9].get_text()
+        results211 = results1.find_all('p')[10].get_text()
+
+        results212 = results1.find_all('p')[11].get_text()
+        results213 = results1.find_all('p')[12].get_text()
+
+        results214 = results1.find_all('p')[13].get_text()
+
+        results215 = results1.find_all('p')[14].get_text()
+        results216 = results1.find_all('p')[15].get_text()
+
+        results217 = results1.find_all('p')[16].get_text()
+
+        results218 = results1.find_all('p')[17].get_text()
+        results219 = results1.find_all('p')[18].get_text()
+        results220 = results1.find_all('p')[19].get_text()
+
+        results221 = results1.find_all('p')[21].get_text()
+        results222 = results1.find_all('p')[22].get_text()
+
+        responses = ("Tips for prevention\n"
+                     "{0}\n"
+                     "{1}\n"
+                     "{2}\n"
+                     "{3}\n"
+                     "{4}\n"
+                     "{5}\n"
+                     "{6}\n"
+                     "{7}\n"
+                     "{8}\n"
+                     "{9}\n"
+                     "{10}\n"
+                     "{11}\n"
+                     "{12}\n"
+                     "{13}\n"
+                     "{14}\n"
+                     "{15}\n"
+                     "{16}\n"
+                     "{17}\n"
+                     "{18}\n"
+                     "{19}\n"
+                     "{20}\n"
+                     "{21}\n"
+                     "{22}\n"
+                     "{23}\n"
+                     "{24}\n"
+                     "{25}\n"
+                     "{26}\n"
+                     "{27}\n"
+                     "{28}\n"
+                     "{29}\n"
+                     "{30}\n"
+                     "{31}\n"
+                     "{32}\n"
+                     "{33}").format(results21, data, results22, results23, data1, results24, results25, data2,
+                                    results26, data3, results27, data4, results28, results29, data5, results210,
+                                    results211, data6, results212, results213, data7, results214, data8, results215,
+                                    results216, data9, results217, data10, results218, results219, results220, data11,
+                                    results221, results222)
+
+        email = 'shaikhafy39@gmail.com'
+        password = '9819213632'
+        send_to_email = toemail
+        subject = 'Detail report of coronavirus'  # The subject line
+        message = responses
+
+        msg = MIMEMultipart()
+        msg['From'] = email
+        msg['To'] = send_to_email
+        msg['Subject'] = subject
+
+        # Attach the message to the MIMEMultipart object
+        msg.attach(MIMEText(message, 'plain'))
+
+        try:
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(email, password)
+            text = msg.as_string()  # You now need to convert the MIMEMultipart object to a string to send
+            server.sendmail(email, send_to_email, text)
+            server.quit()
+
+            a = 'Dear {0}, Detailed report has been sent to {1}'.format(toname, toemail)
+        except:
+            a = 'Sorry there was a issue, Please try again'
+
+        dispatcher.utter_message(template="utter_preventiveMeasures", text=a)
+
+        return []
+
+
+class ActionBye(Action):
+
+    def name(self) -> Text:
+        return "action_bye"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        name = tracker.get_slot('name')
+        response = "Bye {0} and don't forget to wash your hands and maintain safe distance".format(name)
+        dispatcher.utter_message(template="utter_bye", text=response)
+
+        return []

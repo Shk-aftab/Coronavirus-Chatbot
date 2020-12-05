@@ -1,0 +1,107 @@
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true
+intents:
+- greet
+- getDetails
+- latestUpdatesOfWorld
+- latestUpdatesCountryName
+- updatesCountryDate
+- updatesWorldDate
+- updateIndiaStateWise
+- preventiveMeasures
+- demographicView
+- sendEmail
+- worldmapcases
+- choose
+- bye
+entities:
+- email
+- pincode
+- name
+- number
+- date
+- statename
+- countryname
+- countrynamed
+slots:
+  countryname:
+    type: text
+  countrynamed:
+    type: text
+  date:
+    type: text
+  email:
+    type: text
+  name:
+    type: text
+  number:
+    type: text
+  pincode:
+    type: text
+  statename:
+    type: text
+responses:
+  utter_greet:
+  - text: Hey, this is COVID-19 chatbot. I welcome you to this platform where you
+      can get updates of Coronavirus cases around the world , country and even state.
+      To get more Clarification I would like you to provide your name , email ID ,
+      phone number and pincode.
+  utter_getDetails:
+  - text: Hey {name} this is COVID-19 chatbot. Your details has been saved. Feel free
+      to ask any query regarding coronavirus (e.g cases in india, cases in india at
+      2020-04-02 , cases around the world , cases around the world at 2020-04-17 ,
+      cases in Maharashtra)
+  utter_latestUpdatesOfWorld:
+  - text: ''
+  utter_latestUpdatesCountryName:
+  - text: ''
+  utter_updatesCountryDate:
+  - text: ''
+  utter_updatesWorldDate:
+  - text: ''
+  utter_updateIndiaStateWise:
+  - text: ''
+  utter_preventiveMeasures:
+  - text: ''
+  utter_demographicView:
+  - text: https://www.covid19india.org/
+  utter_sendEmail:
+  - text: ''
+  utter_worldmapcases:
+  - text: https://bing.com/covid
+  utter_choose:
+  - text: Have a look here too
+    buttons:
+      - title: preventive measures
+        payload: '/preventiveMeasures'
+      - title: Latest Updates of World
+        payload: '/latestUpdatesOfWorld'
+      - title: Latest Updates of a Country
+        payload: '/latestUpdatesCountryName'
+  utter_bye:
+  - text: ''
+
+actions:
+- utter_greet
+- action_hello_with_details
+- action_latest_updates_world
+- utter_getDetails
+- utter_latestUpdatesOfWorld
+- utter_latestUpdatesCountryName
+- action_latest_updates_country_name
+- action_updates_country_date
+- utter_updatesCountryDate
+- utter_updatesWorldDate
+- action_updates_world_date
+- utter_updateIndiaStateWise
+- action_updates_IndiaStateWise
+- utter_preventiveMeasures
+- action_preventive_measures
+- utter_demographicView
+- utter_sendEmail
+- action_send_email
+- utter_worldmapcases
+- utter_choose
+- action_bye
+- utter_bye

@@ -1,0 +1,372 @@
+// See https://github.com/dialogflow/dialogflow-fulfillment-nodejs
+// for Dialogflow fulfillment library docs, samples, and to report issues
+'use strict';
+
+const nodemailer = require("nodemailer");
+
+var countries = require("i18n-iso-countries");
+const axios = require("axios");
+const functions = require('firebase-functions');
+const {WebhookClient} = require('dialogflow-fulfillment');
+const {Card, Suggestion} = require('dialogflow-fulfillment');
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'shaikhafy39@gmail.com',
+        pass: '9819213632'
+    }
+});
+
+ 
+process.env.DEBUG = 'dialogflow:debug'; // enables lib debugging statements
+ 
+exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response) => {
+  const agent = new WebhookClient({ request, response });
+  console.log('Dialogflow Request headers: ' + JSON.stringify(request.headers));
+  console.log('Dialogflow Request body: ' + JSON.stringify(request.body));
+ 
+  function welcome(agent) {
+    agent.add(`Welcome to my agent!`);
+  }
+ 
+  function fallback(agent) {
+    agent.add(`I didn't understand`);
+    agent.add(`I'm sorry, can you try again?`);
+  }
+  
+  
+  
+  function locationwiseHandler(agent){
+    const country= agent.parameters.country;    
+    agent.add(`Coronavirus Updates for `+ country);
+    
+    return axios({
+              "method":"GET",
+              "url":"https://covid-19-data.p.rapidapi.com/country",
+              "headers":{
+              "content-type":"application/octet-stream",
+              "x-rapidapi-host":"covid-19-data.p.rapidapi.com",
+              "x-rapidapi-key":"944c9b5040msh8be46f3d0397343p156417jsnb6415553955c"
+              },"params":{
+              "format":"undefined",
+              "name":`${country}`
+              }
+              })
+              .then((response)=>{
+                console.log(response);
+      			console.log(response.data);
+      			response.data.map(countryObj=>{
+                agent.add(`Country: ` +countryObj.country);
+      			agent.add(`Confirmed: ` +countryObj.confirmed.toString());
+                agent.add(`Recovered: ` +countryObj.recovered.toString());
+                agent.add(`Critical: ` +countryObj.critical.toString());
+                agent.add(`Deaths: ` +countryObj.deaths.toString());
+                  
+                  
+                  
+                  
+     			 });
+              })
+              .catch((error)=>{
+                console.log(error);
+              });
+    
+ 
+  }
+  
+
+
+  
+   function UpdatesofWorldHandler(agent){
+     
+    agent.add(`Coronavirus around the world`);
+  
+      return axios({
+                "method":"GET",
+                "url":"https://covid-19-data.p.rapidapi.com/totals",
+                "headers":{
+                "content-type":"application/octet-stream",
+                "x-rapidapi-host":"covid-19-data.p.rapidapi.com",
+                "x-rapidapi-key":"944c9b5040msh8be46f3d0397343p156417jsnb6415553955c"
+                },"params":{
+                "format":"undefined"
+                }
+                })
+                .then((response)=>{
+                //console.log(response.data);
+        		response.data.map(WorldObj=>{
+      			agent.add(`Confirmed: ` +WorldObj.confirmed.toString());
+                agent.add(`Recovered: ` +WorldObj.recovered.toString());
+                agent.add(`Critical: ` +WorldObj.critical.toString());
+                agent.add(`Deaths: ` +WorldObj.deaths.toString());
+            
+     			 });
+                })
+                .catch((error)=>{
+                  console.log(error);
+                });
+     
+   }
+  
+  
+  function perDayOfCountryHandler(agent){
+    
+   var country= agent.parameters.country;    
+   var date=agent.parameters.date;
+ 
+   
+    if(country != null && date != null){
+
+   	agent.add(`Alright the updates of ${country} at ${date}.`);
+      
+
+     countries.registerLocale(require("i18n-iso-countries/langs/en.json"));
+     var countrycode=countries.getAlpha3Code(`${country}`, 'en');
+  
+      
+      return axios({
+                "method":"GET",
+                "url":`https://covidapi.info/api/v1/country/${countrycode}/${date}`,
+                "params":{
+                "format":"json"
+                }
+                })
+      .then((response)=>{
+       console.log(response.data);
+        
+        var Data = '';
+       	Data = JSON.stringify(response.data.result[date]);
+      	console.log(Data);
+        var Datap=JSON.parse(Data);
+        agent.add(`Confirmed: ${Datap.confirmed}`);
+        agent.add(`Recovered: ${Datap.recovered}`);
+        agent.add(`Deaths: ${Datap.deaths}`);
+        
+        
+        
+       })
+       .catch((error)=>{
+             console.log(error);
+            });
+            
+     }
+  
+  
+  }
+  
+  
+   
+  function perDayOfWorldHandler(agent){
+    
+   var date =agent.parameters.date;
+ 
+   
+    if(date != null){
+
+   	agent.add(`Alright, The updates of world at ${date}.`);
+      
+
+     
+  
+      
+      return axios({
+                "method":"GET",
+                "url":`https://covidapi.info/api/v1/global/${date}`,
+                "params":{
+                "format":"json"
+                }
+                })
+      .then((response)=>{
+       console.log(response.data);
+       	
+        var data = ' ';
+        	
+        data = JSON.stringify(response.data.result);
+     
+        var data1 = JSON.parse(data);
+        agent.add(`Confirmed: ${data1.confirmed}`);
+        agent.add(`Recovered: ${data1.recovered}`);
+        agent.add(`Deaths: ${data1.deaths}`);
+        
+      	//agent.add(data);
+        
+       })
+       .catch((error)=>{
+             console.log(error);
+            });
+            
+     }
+  
+  
+  }
+  
+  
+  function indiaStateWiseHandler(agent){
+    
+     
+    var state =agent.parameters.state;
+    
+    agent.add(state);
+
+    
+       var statecode={ 
+    
+          AP:"Andhra Pradesh",
+          AR:"Arunachal Pradesh",
+          AS:"Assam",
+          BR:"Bihar",
+          CT:"Chhattisgarh",
+          GA:"Goa",
+          GJ:"Gujarat",
+          HR:"Haryana",
+          HP:"Himachal Pradesh",
+          JK:"Jammu and Kashmir",
+          JH:"Jharkhand",
+          KA:"Karnataka",
+          KL:"Kerala",
+          MP:"Madhya Pradesh",
+          MH:"Maharashtra",
+          MN:"Manipur",
+          ML:"Meghalaya",
+          MZ:"Mizoram",
+          NL:"Nagaland",
+          OR:"Odisha",
+          PB:"Punjab",
+          RJ:"Rajasthan",
+          SK:"Sikkim",
+          TN:"Tamil Nadu",
+          TG:"Telangana",
+          TR:"Tripura",
+          UT:"Uttarakhand",
+          UP:"Uttar Pradesh",
+          WB:"West Bengal",
+          AN:"Andaman and Nicobar Islands",
+          CH:"Chandigarh",
+          DN:"Dadra and Nagar Haveli",
+          DD:"Daman and Diu",
+          DL:"Delhi",
+          LD:"Lakshadweep",
+          PY:"Puducherry"
+    
+      };
+    
+    const statec = Object.keys(statecode).find(key => statecode[key] === state);
+    
+    
+   
+      return axios({
+            "method":"GET",
+            "url":`https://covid19india.p.rapidapi.com/getStateData/${statec}`,
+            "headers":{
+            "content-type":"application/octet-stream",
+            "x-rapidapi-host":"covid19india.p.rapidapi.com",
+            "x-rapidapi-key":"944c9b5040msh8be46f3d0397343p156417jsnb6415553955c"
+            }
+            })
+            .then((response)=>{
+        	
+        	var data = '';
+        		
+        	data = JSON.stringify(response.data.response);
+        	var datap=JSON.parse(data);        
+        	agent.add(`Confirmed: ${datap.confirmed}`);
+        	agent.add(`Recovered: ${datap.recovered}`);
+        	agent.add(`Deaths: ${datap.deaths}`);
+        	
+        
+            })
+            .catch((error)=>{
+              console.log(error);
+            });
+  }
+  
+  
+
+   
+  
+  function getdata(name,email,callback){
+    
+     var request = require('request');
+    var cheerio = require('cheerio');
+    
+    agent.add('Sending the mail please wait,Thank you');
+    
+    setTimeout(function(){
+  	
+    return	axios.get("https://www.healthline.com/health/coronavirus-prevention#Tips-for-prevention")
+    .then(response=>{
+             
+                var $ = cheerio.load(response.data);
+                  console.log($);
+                  
+                  var heading =$(".css-0");
+                  
+                  console.log(heading.text().split('.'));
+          
+          			var head=heading.text().split('.');
+     			 //agent.add(head);
+      				var name1 = name;
+      				var email1= email;
+      	callback(name1,email1,head);
+                  
+      }); 
+      
+    
+    },6000);
+    
+  }
+  
+  
+  function sendreport(name1,email1,head){
+    
+    agent.add('Sending');
+  
+    const mailOptions = {
+      
+        from: "COVID-19 ChatBot", // sender address
+        to: email1, // list of receivers
+        subject: "Report Regarding Coronavirus", // Subject line
+        html: `<p> Hello ${name1} ${head} </p>`
+    };
+    
+    transporter.sendMail(mailOptions, function (err, info) {
+    if(err)
+    {
+      console.log(err);
+    }
+});
+    
+   }
+  
+ 
+  
+  function sendemailHandler(agent){
+    
+    const name  = agent.parameters.name;    
+    const email  = agent.parameters.email;    
+    
+  	getdata(name,email,sendreport);
+  
+  }
+  
+  
+  
+  
+  
+
+  
+  // Run the proper function handler based on the matched Dialogflow intent name
+  let intentMap = new Map();
+  intentMap.set('Default Welcome Intent', welcome);
+  intentMap.set('Default Fallback Intent', fallback);
+  intentMap.set('locationwise', locationwiseHandler);
+  intentMap.set('UpdatesofWorld', UpdatesofWorldHandler);
+  intentMap.set('perDayOfCountry', perDayOfCountryHandler);
+  intentMap.set('perDayOfWorld', perDayOfWorldHandler);
+  intentMap.set('indiaStateWise',indiaStateWiseHandler);
+  intentMap.set('sendemail',sendemailHandler);
+  
+  
+  agent.handleRequest(intentMap);
+});

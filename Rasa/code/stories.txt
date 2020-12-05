@@ -1,0 +1,81 @@
+## happy path
+* greet
+  - utter_greet
+* getDetails
+  - action_hello_with_details
+* bye
+  - action_bye
+
+## world path
+* greet
+  - utter_greet
+* getDetails
+  - action_hello_with_details
+* latestUpdatesOfWorld
+  - action_latest_updates_world
+* updatesWorldDate
+  - action_updates_world_date
+* bye
+  - action_bye
+  
+## country path
+* greet
+  - utter_greet
+* getDetails
+  - action_hello_with_details
+* latestUpdatesCountryName
+  - action_latest_updates_country_name
+* updatesCountryDate
+  - action_updates_country_date
+* bye
+  - action_bye    
+  
+## state path
+* greet
+  - utter_greet
+* getDetails
+  - action_hello_with_details  
+* updateIndiaStateWise
+  - action_updates_IndiaStateWise
+* choose
+  - utter_choose
+* bye
+  - action_bye
+  
+## preventive measures
+* greet
+  - utter_greet
+* getDetails
+  - action_hello_with_details
+* preventiveMeasures
+  - action_preventive_measures
+* choose
+  - utter_choose
+* bye
+  - action_bye
+
+## demographic view
+* greet
+  - utter_greet
+* getDetails
+  - action_hello_with_details
+* demographicView
+  - utter_demographicView
+* worldmapcases
+  - utter_worldmapcases
+* choose
+  - utter_choose
+* bye
+  - action_bye
+  
+## send Email
+* greet
+  - utter_greet
+* getDetails
+  - action_hello_with_details
+* sendEmail
+  - action_send_email
+* choose
+  - utter_choose
+* bye
+  - action_bye
